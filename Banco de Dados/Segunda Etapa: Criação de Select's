@@ -1,0 +1,110 @@
+-- Segunda Etapa: Criação de Select's --
+
+
+-- Claito de Leles
+-- Selecionar o título, gênero e tempo de reprodução das músicas lançadas anterior ao ano de 2005 (simples)
+select titulo, genero, tempo_reproducao
+from musica
+where data_lancamento <= '2005-01-01';
+
+-- Emily Samara 
+-- Selecionar o nome, o gênero musical e o número de seguidores dos artistas que estreiaram num período entre os anos 2000 e 2020  (simples)
+select nome, genero_musical_artista, nro_seguidores
+from artista
+where ano_estreia between "2000-01-01" and "2020-01-01";
+
+-- Paulo e João Vitor
+-- Listar todos albuns que foram lançados entre 2017 e 2020, em que o genero musical seja sertanejo e comece com a letra P (P e J) simples
+select ano_lancamento, genero_musical
+from album
+where ano_lancamento between '2017-01-01' and '2020-12-31'
+    and (genero_musical = 'Sertanejo'
+    or (genero_musical like 'P%'));
+
+-- Paulo e João Vitor
+-- Listar todos os artistas que cantam sertanejo, e que tenham mais de 5 seguidores pra cima. simples
+select nome
+from artista
+where genero_musical_artista = 'Sertanejo' and nro_seguidores >= 5;
+
+-- Paulo e João Vitor
+-- Listar os nomes dos artistas diferentes de "Xamã", que tenham o cod de album (5,8,3,7). simples
+
+select cod_artista
+from artista_album
+where cod_artista != 2 and cod_album in (5,8,3,7);
+
+--------------------------
+
+-- Claito de Leles
+-- Selecionar o título e a nota das 5 músicas mais bem avaliada (junção)
+select titulo, nota
+from musica m, hist_avaliacao h
+where m.cod_musica = h.cod_musica
+order by nota desc limit 5;
+
+
+-- Emily 
+-- Selecionar todas as músicas avaliadas por um determinado usuário
+select m.titulo, m.genero, u.nome_usuario, ha.nota
+from musica m
+join hist_avaliacao ha on m.cod_musica = ha.cod_musica
+join usuario u on ha.cod_usuario = u.cod_usuario
+where u.nome_usuario = 'Vinicius Pires Teixeira';
+
+-- Paulo e João Vitor
+-- Listar o nome da música, categoria, nome da banda (junção
+select m.titulo, m.genero, ar.nome
+from musica m, artista ar, musica_artista mar
+where m.cod_musica = mar.cod_musica and ar.cod_artista = mar.cod_artista;
+
+-- Paulo e João Vitor
+-- Listar nome e data de criação da playlist, e as musicas da playlist junção
+select p.nome, p.data_criacao, m.titulo
+from playlist p, musica m
+where m.cod_musica = p.cod_musica;
+
+-- Paulo e João Vitor
+-- Listar o nome do usuario, musica reproduzida, artista e a data e hora do histórico de reprodução junção 
+select u.nome_usuario, m.titulo, ar.nome, hr.data_reproducao, hr.horario_reproducao
+from usuario u, musica m, hist_reproducao hr, artista ar, musica_artista mar
+where u.cod_usuario = hr.cod_usuario and m.cod_musica = hr.cod_musica and m.cod_musica = mar.cod_musica and ar.cod_artista = mar.cod_artista;
+
+ --------------------------
+
+-- Claito de Leles
+-- Selecionar o gênero musical dos artistas e a média de seguidores referente a cada gênero musical
+select genero_musical_artista 'Gênero Musical dos Artistas', round(avg(nro_seguidores), 0) 'Média de Seguidores por Gênero Musical'
+from artista
+group by genero_musical_artista;
+
+-- Emily
+-- Listar numero total de seguidores por genero musical
+select genero_musical_artista, sum(nro_seguidores) as total_seguidores
+from artista
+group by genero_musical_artista;
+
+-- Paulo e João Vitor
+-- Listar o ano da data de nascimento e quantidade de usuarios pelo genero.
+select year(dt_nasc) ano, genero_usuario, count(*) as qt_usuario
+from usuario
+group by ano, genero_usuario;
+
+-- Paulo e João Vitor
+-- listar contagem de total de musicas por genero musical.
+select genero, count(*) as total_musicas
+from musica
+group by genero;
+
+-- Paulo e João Vitor
+-- Listar o ano, a média e quantidades de avaliações por ano.
+select year(data_avaliacao) Ano, round(avg(nota), 0) Média , count(*) Qtd_avaliacoes
+from hist_avaliacao
+group by Ano;
+
+-- João Vitor
+-- (SELECT BÔNUS) listar o artista com maior numero de seguidores
+select nome, nro_seguidores
+from artista
+where nro_seguidores =(select max(nro_seguidores) from artista);
+---------------------------------------------------------------------
