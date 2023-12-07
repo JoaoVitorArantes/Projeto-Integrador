@@ -1,0 +1,114 @@
+--- Quarta Etapa: Funções e Triggers ---
+
+-- JOÃO VITOR
+#1) Trigger
+  /* verifica se existe avaliaçõe à alguma música que vai ser excluída
+  Se tiver pelo menos uma avaliação, o trigger gera erro, impedindo a exclusão*/
+  delimiter //
+  create trigger impede_exclusao_musica_avaliada
+  before delete on musica
+  for each row
+  begin
+      declare quantidade_avaliacoes int;
+
+      select count(*) into quantidade_avaliacoes
+      from hist_avaliacao
+      where cod_musica = old.cod_musica;
+
+      if quantidade_avaliacoes > 0 then
+          signal sqlstate '45000'
+          set message_text = 'Erro: Não é possível excluir uma música que foi avaliada.';
+      end if;
+  end;
+  //
+  delimiter ;
+
+  #Exemplo
+  -- tentativa excluindo uma música que foi avaliada
+  delete from musica where cod_musica = 3;
+
+#2) Função
+  /* curto se a duração for menor ou igual a 180 minutos e longo se for o contrário */ 
+  delimiter //
+  create function tempo_reproducao_classificacao(tempo time) returns varchar(10)
+  begin
+      declare duracao_minutos int;
+
+      set duracao_minutos = time_to_sec(tempo) / 60;
+
+      if duracao_minutos <= 180 then
+          return 'Curto';
+      else
+          return 'Longo';
+      end if;
+  end;
+  //
+  delimiter ;
+
+  #Exemplo
+  select tempo_reproducao_classificacao('01:30:00') as classificacao;
+  -- esse é curto
+
+  select tempo_reproducao_classificacao('05:30:00') as classificacao;
+  -- esse é longo
+
+
+-- PAULO
+-- #1) Trigger
+  
+  delimiter //
+  create trigger barra_ano before insert on album
+  for each row
+  begin
+  if( new.ano_lancamento < current_date()) then
+    signal sqlstate '45000' set message_text = 'Impossível postar nessa data';
+  end if;
+  end //
+
+  delimiter ;
+
+  insert into album (cod_album, titulo_album, ano_lancamento, genero_musical) values 
+  (20, 'Pink', '1700-12-15', 'Rap');
+
+
+-- #2) Função
+  delimiter //
+  create function quantos_anos_tem(ano_lancamento date) returns int
+  begin
+  declare qtd_anos int;
+  set qtd_anos = timestampdiff(year, ano_lancamento, current_date());
+  return qtd_anos;
+  end //
+  delimiter ;
+
+
+delimiter //
+create function classification(qtd_anos int) returns varchar(30)
+begin
+case 
+when qtd_anos <= 5 then
+return 'Novo';
+when qtd_anos > 5 and qtd_anos <= 10 then
+return 'Jovem';
+when qtd_anos > 10 and qtd_anos <= 30 then
+return 'Antigo';
+when qtd_anos > 30 then
+return 'Muito Antigo';
+end case;
+end //
+delimiter ;
+
+
+select titulo_album, quantos_anos_tem(ano_lancamento) idade, classification(quantos_anos_tem(ano_lancamento)) classificacao
+from album;
+
+
+-- ClAITO
+-- #1) Trigger
+
+-- #2) Função
+
+-- EMILY
+-- #1) Trigger
+
+-- #2) Função
