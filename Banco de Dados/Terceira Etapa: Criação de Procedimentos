@@ -47,21 +47,21 @@ create procedure insert_update_usuario(
     p_dt_nasc date
 )
 begin
-  if p_nome_usuario is null or p_email is null or p_senha is null or p_genero_usuario is null or p_dt_nasc is null then
+  if /* p_cod_usuario is null or */ p_nome_usuario is null or p_email is null or p_senha is null or p_genero_usuario is null or p_dt_nasc is null then
     signal sqlstate '45000'
         set message_text = 'Erro: Campos obrigatórios não podem ser nulos.';
   else
     if p_cod_usuario is null then
     insert into usuario (cod_usuario, nome_usuario, email, senha, genero_usuario, dt_nasc) values
-        (p_nome_usuario, p_email, p_senha, p_genero_usuario, p_dt_nasc);
+        (p_cod_usuario, p_nome_usuario, p_email, p_senha, p_genero_usuario, p_dt_nasc);
         else
       update usuario
-            set nome_usuario = p_nome_usuario, email = p_email, senha = p_senha, genero_usuario = p_genero_usuario, dt_nasc = p_dt_nasc
-            where p_cod_usuario = cod_usuario;
+            set cod_usuario = p_cod_usuario, nome_usuario = p_nome_usuario, email = p_email, senha = p_senha, genero_usuario = p_genero_usuario, dt_nasc = p_dt_nasc
+            where p_cod_usuario = cod_usuario; 
     end if;
   end if;
 end //
-delimiter;
+delimiter ;
 
 
 -- EMILY
@@ -69,15 +69,125 @@ delimiter;
 de dados na tabela 3Artista ́. O procedimento deve incluir a verificação
 dos campos obrigatórios, caso eles não sejam informados, emitir
 mensagem de erro. */
+-- Procedimento 1
+drop PROCEDURE InserirAtualizarArtista;
+DELIMITER $
+
+CREATE PROCEDURE InserirAtualizarArtista(
+    IN var_cod_artista INT,
+    IN var_nome VARCHAR(100),
+    IN var_genero_musical_artista VARCHAR(100),
+    IN var_nro_seguidores INT,
+    IN var_ano_estreia DATE,
+    IN var_biografia VARCHAR(5000)
+)
+BEGIN
+    -- Verificar se o nome do artista é informado
+    IF var_nome IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O nome do artista é obrigatório.';
+    END IF;
+
+    -- Verificar se o gênero musical do artista é informado
+    IF var_genero_musical_artista IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O gênero musical do artista é obrigatório.';
+    END IF;
+
+    -- Verificar se o número de seguidores é informado e não é negativo
+    IF var_nro_seguidores IS NULL OR var_nro_seguidores < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O número de seguidores deve ser informado e não pode ser negativo.';
+    END IF;
+
+    -- Verificar se o ano de estreia é informado
+    IF var_ano_estreia IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O ano de estreia do artista é obrigatório.';
+    END IF;
+
+    -- Verificar se a biografia é informada
+    IF var_biografia IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'A biografia do artista é obrigatória.';
+
+    END IF;
+
+    -- Verificar se o artista já existe pelo código
+    IF EXISTS (SELECT 1 FROM Artista WHERE cod_artista = var_cod_artista) THEN
+        -- Atualizar os dados do artista
+        UPDATE Artista
+        SET
+            nome = var_nome,
+            genero_musical_artista = var_genero_musical_artista,
+            nro_seguidores = var_nro_seguidores,
+            ano_estreia = var_ano_estreia,
+            biografia = var_biografia
+        WHERE cod_artista = var_cod_artista;
+    ELSE
+        -- Inserir novo artista
+        INSERT INTO Artista (nome, genero_musical_artista, nro_seguidores, ano_estreia, biografia)
+        VALUES (var_nome, var_genero_musical_artista, var_nro_seguidores, var_ano_estreia, var_biografia);
+    END IF;
+END $
+
+DELIMITER ;
+
+-- Exemplo de chamada do procedimento para inserir ou atualizar um artista
+CALL InserirAtualizarArtista(11, "Daniel", "R&B/soul", 678, '2013-01-21', "jdfuudiSVFSDAIDR9weqwfhdblfhidasfuweurbwqeduscubsdjbfgjldfhsigfyzdvhfvbjUF.");
+select * from artista;
 
 /* Procedimento 2: Crie um procedimento que dado um período de
 avaliação, liste o nome do artista e a nota média recebida em avaliações
 no período. Caso o artista não tenha recebido nenhuma avaliação no
 período, deve ser mostrada a mensagem "sem avaliação". */
+-- Procedimento 2
+DELIMITER $
+drop procedure AvaliacoesPorPeriodo;
+CREATE PROCEDURE AvaliacoesPorPeriodo(
+    IN data_inicio DATE,
+    IN data_fim DATE
+)
+BEGIN
+    SELECT
+        A.nome AS NomeArtista,
+        IFNULL(CAST(AVG(HA.nota) AS CHAR), 'sem avaliação') AS NotaMedia
+    FROM
+        artista A
+    LEFT JOIN
+        musica_artista MA ON A.cod_artista = MA.cod_artista
+    LEFT JOIN
+        hist_avaliacao HA ON MA.cod_musica = HA.cod_musica
+    WHERE
+        HA.data_avaliacao BETWEEN data_inicio AND data_fim OR HA.data_avaliacao IS NULL
+    GROUP BY
+        A.nome;
+END $
+
+DELIMITER ;
+
+CALL AvaliacoesPorPeriodo('2023-01-01', '2023-12-31');
 
 /* Procedimento 3: Crie um procedimento que dado o nome do usuário
 vai listar o nome de todas as músicas ouvidas pelo usuário. Ordenar em
 ordem alfabética pelo nome da música. */
+-- Procedimento 3 
+DELIMITER $
+
+CREATE PROCEDURE ListarMusicasPorUsuario(IN nomeUsuario VARCHAR(100))
+BEGIN
+    SELECT M.titulo AS NomeMusica
+    FROM usuario U
+    JOIN hist_reproducao HR ON U.cod_usuario = HR.cod_usuario
+    JOIN musica M ON HR.cod_musica = M.cod_musica
+    WHERE U.nome_usuario = nomeUsuario
+    ORDER BY M.titulo;
+END $
+
+DELIMITER ;
+
+CALL ListarMusicasPorUsuario('Taylor Schmidt');
+
 
 
 -- JOÃO VITOR
@@ -330,26 +440,30 @@ CREATE PROCEDURE pro_musicas_nao_ouvidas ()
 BEGIN
   create temporary table if not exists temp_musicas_nao_ouvidas as
     select m.cod_musica, m.titulo
-        from musica m left join hist_avaliacao h on m.cod_musica = h.cod_musica
+        from musica m left join hist_reproducao h on m.cod_musica = h.cod_musica
         where h.cod_musica is null;
 
         -- exibir a tabela temporária
-        select * from temp_musicas_nao_ouvidas;
+    select * from temp_musicas_nao_ouvidas;
+        drop table temp_musicas_nao_ouvidas;
 
 END $
 DELIMITER ;
 
+call pro_musicas_nao_ouvidas ();
+
 /* Procedimento 2: */
 delimiter $
-create procedure list_musicas_artista(var_nome varchar(255))
+create procedure list_musicas_artista(var_nome_artista varchar(100))
 begin
-  select m.nome, ifnull (h.hist_avaliacao, 'Não avaliada')
-    from musica m
-    left join hist_avaliacao h on m.cod_musica = h.cod_musica
-    where h.cod_artista = (select a.cod_artista, a.nome from artista a where a.cod_artista = h.cod_artista);
-
+  select m.cod_musica, m.titulo , ifnull (h.nota, 'Não avaliada') 
+    from musica m left join hist_avaliacao h  on m.cod_musica = h.cod_musica  
+    left join musica_artista ma on ma.cod_musica = m.cod_musica left join artista a on ma.cod_artista = a.cod_artista
+    where a.nome = var_nome_artista;
 end $
 delimiter ;
+
+call list_musicas_artista("Marília Mendonça");
 
 /* Procedimento 3: */
 delimiter //
@@ -362,33 +476,27 @@ create procedure insert_update_usuario(
     p_dt_nasc date
 )
 begin
-  if p_nome_usuario is null or p_email is null or p_senha is null or p_genero_usuario is null or p_dt_nasc is null then
+  if /* p_cod_usuario is null or */ p_nome_usuario is null or p_email is null or p_senha is null or p_genero_usuario is null or p_dt_nasc is null then
     signal sqlstate '45000'
-        set message_text = 'Erro: Campos obrigatórios não podem ser nulos.';
+    set message_text = 'Erro: Campos obrigatórios não podem ser nulos.';
   else
     if p_cod_usuario is null then
     insert into usuario (cod_usuario, nome_usuario, email, senha, genero_usuario, dt_nasc) values
-        (p_nome_usuario, p_email, p_senha, p_genero_usuario, p_dt_nasc);
+        (p_cod_usuario, p_nome_usuario, p_email, p_senha, p_genero_usuario, p_dt_nasc);
         else
       update usuario
-            set nome_usuario = p_nome_usuario, email = p_email, senha = p_senha, genero_usuario = p_genero_usuario, dt_nasc = p_dt_nasc
-            where p_cod_usuario = cod_usuario;
+            set cod_usuario = p_cod_usuario, nome_usuario = p_nome_usuario, email = p_email, senha = p_senha, genero_usuario = p_genero_usuario, dt_nasc = p_dt_nasc
+            where cod_usuario = p_cod_usuario; 
     end if;
   end if;
 end //
-delimiter;
+delimiter ;
 
--- EMILY
-/* Procedimento 1: Crie um procedimento para fazer inserção/atualização
-de dados na tabela 3Artista ́. O procedimento deve incluir a verificação
-dos campos obrigatórios, caso eles não sejam informados, emitir
-mensagem de erro. */
+ drop procedure insert_update_usuario;
 
-/* Procedimento 2: Crie um procedimento que dado um período de
-avaliação, liste o nome do artista e a nota média recebida em avaliações
-no período. Caso o artista não tenha recebido nenhuma avaliação no
-período, deve ser mostrada a mensagem "sem avaliação". */
-
-/* Procedimento 3: Crie um procedimento que dado o nome do usuário
-vai listar o nome de todas as músicas ouvidas pelo usuário. Ordenar em
-ordem alfabética pelo nome da música. */
+select * from usuario;
+insert into usuario values (11, 'Thanos', 'Carrocho@gmail.com', '111111', 'M', '2016-01-02');
+call insert_update_usuario(1, 'Claitão', 'claito.junior@estudante.iftm.edu.br', '111', 'M', '2006-11-16');
+call insert_update_usuario(1, 'Claitão', 'claito.junior@estudante.iftm.edu.br', 'abra', 'M', '2006-11-16');
+call insert_update_usuario(10, null, 'clene@gmail.com', '1234567', 'F', '1970-10-10');
+call insert_update_usuario(null,'Jorge de Abreiro', 'jorjao@gmail.com', '1234567', 'M', '1999-10-10');
