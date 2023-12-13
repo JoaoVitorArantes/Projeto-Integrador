@@ -23,6 +23,3 @@ O TASTE é um sistema de recomendação de música projetado para personalizar a
 2. **Autenticação da Conta**: Instruções sobre como autenticar a conta do usuário para que o sistema possa acessar o histórico de escuta e fornecer recomendações personalizadas.
 
 3. **Explorando Recomendações**: Orientações sobre como explorar e aproveitar as recomendações geradas pelo TASTE, seja por meio de uma interface web, aplicativo móvel ou integração direta com a plataforma de streaming.
-
-
-Sinta-se à vontade para personalizar e expandir este arquivo conforme necessário para atender às especificaçoes do seu projeto. Certifique-se de incluir imagens de qualidade e substituir os placeholders pelos recursos reais do seu sistema.
