@@ -105,10 +105,115 @@ from album;
 
 -- ClAITO
 -- #1) Trigger
+delimiter //
+create trigger validacao before insert on usuario 
+for each row
+begin
+  if new.nome_usuario is null or new.email is null or new.senha is null or new.dt_nasc is null then 
+    signal sqlstate '45000'
+    set message_text = 'Erro: todos os campos obrigatórios devem ser preeenchidos de maneira adequada!';
+    end if;
+end //
+delimiter ;
+
+drop trigger validacao;
+insert into usuario values (13, 'Jorge','jj@gmail.com', '1000000', 'M','2006-11-16');
+select * from usuario;
 
 -- #2) Função
+delimiter //
+create function redefinir_senha (f_cod_usuario int, f_senha varchar (50)) returns boolean
+begin    
+  declare deuCerto boolean default false;
+
+  if exists (select * from usuario where cod_usuario = f_cod_usuario) then 
+    update usuario set senha = f_senha where cod_usuario = f_cod_usuario;
+    set deuCerto = true;
+    end if;
+
+    return deuCerto;
+end //
+delimiter ;
+
+select redefinir_senha (1, 'abcd');
+
+select * from usuario;
 
 -- EMILY
 -- #1) Trigger
+-- Trigger
+drop trigger atualizar_nro_seguidores;
+-- Criação de um trigger que atualiza o número de seguidores do cantor após cada avaliação
+DELIMITER $
+CREATE TRIGGER atualizar_nro_seguidores
+AFTER INSERT ON hist_avaliacao
+FOR EACH ROW
+BEGIN
+    DECLARE avg_rating FLOAT;
+
+    -- Calcula a média das notas para o artista associado à música avaliada
+      SELECT avg (ma.cod_musica) INTO @avg_rating
+    FROM hist_avaliacao ha, musica_artista ma
+    WHERE ha.cod_musica = ma.cod_musica AND ma.cod_artista
+IN (SELECT cod_artista FROM musica_artista WHERE cod_musica= new.cod_musica )
+;
+
+    -- Atualiza o número de seguidores do cantor
+    set @cod_artista = (SELECT cod_artista
+        FROM musica_artista
+        WHERE cod_musica = NEW.cod_musica);
+    UPDATE artista
+    SET nro_seguidores = ROUND(@avg_rating * 200) -- Multiplicado por 200 apenas para um exemplo
+    WHERE cod_artista = @cod_artista;
+END;
+$
+DELIMITER ; 
+select * from artista; 
+select  @avg_rating;
+SELECT avg (ma.cod_musica) 
+    FROM hist_avaliacao ha, musica_artista ma
+    WHERE ha.cod_musica = ma.cod_musica AND ma.cod_artista=1;
+    UPDATE artista
+    SET nro_seguidores = 3*200 
+    WHERE cod_artista = 1;
+select * from hist_avaliacao; 
+-- Inserir avaliações para testar o trigger
+INSERT INTO hist_avaliacao (cod_usuario, cod_hist_aval,cod_musica, data_avaliacao, nota, horario_avaliacao)
+VALUES
+  (3, 17, 3, '2023-01-03', 5, '16:45:00');
+
+     SELECT avg (ma.cod_musica) INTO @avg_rating
+    FROM hist_avaliacao ha, musica_artista ma
+    WHERE ha.cod_musica = ma.cod_musica AND ma.cod_artista
+IN (SELECT cod_artista FROM musica_artista WHERE cod_musica= 3 )
 
 -- #2) Função
+ -- Função para classificar músicas com base na média das avaliações
+DELIMITER $
+
+-- Função
+CREATE FUNCTION ClassificarMusica(cod_musica_param INT) RETURNS VARCHAR(255)
+BEGIN
+    DECLARE media_avaliacao FLOAT;
+
+    -- Calcular a média das avaliações para a música
+    SELECT AVG(nota) INTO media_avaliacao
+    FROM hist_avaliacao
+    WHERE cod_musica = cod_musica_param;
+
+    -- Lógica de classificação, você pode ajustar conforme necessário
+    IF media_avaliacao >= 4.5 THEN
+        RETURN 'Excelente';
+    ELSEIF media_avaliacao >= 3.5 THEN
+        RETURN 'Bom';
+    ELSEIF media_avaliacao >= 2.5 THEN
+        RETURN 'Regular';
+    ELSE
+        RETURN 'Ruim';
+    END IF;
+END $
+
+DELIMITER ;
+
+-- Exemplo de uso da função para classificar a música com cod_musica = 1
+SELECT titulo, ClassificarMusica(cod_musica) FROM musica;
