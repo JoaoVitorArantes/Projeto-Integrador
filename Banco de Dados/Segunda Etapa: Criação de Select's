@@ -107,4 +107,3 @@ group by Ano;
 select nome, nro_seguidores
 from artista
 where nro_seguidores =(select max(nro_seguidores) from artista);
----------------------------------------------------------------------
